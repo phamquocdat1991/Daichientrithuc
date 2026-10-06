@@ -1,0 +1,21 @@
+const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict'),crypto=require('node:crypto');
+const nodes=new Map();function node(s){if(!nodes.has(s))nodes.set(s,{innerHTML:'',textContent:'',value:'',style:{},open:false,addEventListener(){},showModal(){this.open=true},close(){this.open=false},classList:{add(){},remove(){}}});return nodes.get(s)}
+const storage=new Map();let tick;
+const ctx={console,crypto,structuredClone,Math,Date,JSON,Number,String,Array,Object,Error,Blob,URL,document:{querySelector:node,querySelectorAll:()=>[],body:{classList:{add(){},remove(){}}},activeElement:{tagName:'BODY'}},window:{addEventListener(){},scrollTo(){}},location:{hash:'#home'},localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},setTimeout:()=>1,clearTimeout(){},setInterval:f=>{tick=f;return 1},clearInterval(){}};vm.createContext(ctx);vm.runInContext(fs.readFileSync(__dirname+'/../public/game/app.js','utf8'),ctx);const run=s=>vm.runInContext(s,ctx);
+assert.equal(run('sample.length'),10);assert.equal(run('validQuestions(sample)'),true);
+assert.equal(run('validQuestions([{text:"x",options:["a","b"],correct:2}])'),false);
+assert.equal(run('validQuestions([{text:"x",options:["a","b"],correct:0,image:"javascript:alert(1)"}])'),false);
+assert.equal(run('parseCSV(\'C,A\\n"a,b","x"\\n"two\\nlines","a"\').length'),3);
+assert.equal(run('parseCSV(\'x,y\\n"a""b",c\')[1][0]'),'a"b');assert.throws(()=>run('parseCSV(\'"unclosed\')'));
+assert.equal(run('esc("<script>")'),'&lt;script&gt;');assert.equal(run('shuffled([1,2,3]).sort().join()'),'1,2,3');
+run('state.sound=false;quickPlay();config.count=2;config.crit=false;config.combo=false;startMatch();');assert.equal(run('game.questions.length'),2);
+run('buzz(0);buzz(1)');assert.equal(run('game.active'),0);run('answer(1)');assert.equal(run('game.teams[0].hp'),52);assert.equal(run('game.teams[0].wrong'),1);run('answer(0)');assert.equal(run('game.log.length'),1);
+run('nextQuestion();buzz(1);answer(2);nextQuestion()');assert.equal(run('game.winner'),1);assert.equal(run('game.status'),'done');assert.equal(run('game.teams[0].hp'),0);assert.equal(run('state.matches.length'),1);
+run('quickPlay();config.count=1;config.crit=false;startMatch();buzz(0);game.remaining=1;');tick();assert.equal(run('game.log[0].selected'),-1);assert.equal(run('game.phase'),'feedback');
+run('nextQuestion()');assert.equal(run('game.status'),'done');
+run('quickPlay();config.count=2;startMatch();buzz(0);pauseGame();');const remaining=run('game.remaining');tick();assert.equal(run('game.remaining'),remaining);run('closeModal();resumeGame()');assert.equal(run('game.paused'),false);
+run('game.teams[0].hp=70;game.teams[1].hp=70;finish()');assert.equal(run('game.phase'),'tie');run('lucky(0)');assert.notEqual(run('game.lucky[0]'),run('game.lucky[1]'));assert.equal(run('game.status'),'done');
+run('quickPlay();startMatch();game.teams[0].energy=3;game.teams[1].hp=10;useSkill(0)');assert.equal(run('game.winner'),0);assert.equal(run('game.teams[1].hp'),0);
+run('quickPlay();startMatch();game.config.damage=20;game.config.combo=true;game.config.crit=true;game.config.mult=2;game.config.rate=1;game.active=0;game.teams[0].combo=3');assert.equal(run('resolveDamage(game,true,()=>0).damage'),52);
+for(const fn of ['home()','banks()','editBank("sample")','classesPage()','charactersPage()','historyPage()','report()'])run(fn);
+assert.ok(storage.get('dctt-dat-v1'));console.log('PASS: 27 assertions — validation, CSV, escaping, shuffle, full match, wrong/correct damage, timeout, pause/resume, tie, skill, combo/crit, page rendering with DOM stub.');
