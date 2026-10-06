@@ -13,7 +13,7 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
     "prepare:assets": "node scripts/prepare-assets.mjs",
-    "test": "node tests/logic.cjs && node tests/pro.cjs && node tests/api.cjs",
+    "test": "node tests/logic.cjs && node tests/pro.cjs && node tests/battle-fx.cjs && node tests/api.cjs",
     "predev": "node scripts/prepare-assets.mjs",
     "prebuild": "node scripts/prepare-assets.mjs"
   },
